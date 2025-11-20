@@ -2,6 +2,14 @@ import React from 'react';
 import { PhoneCall, Clock, ShieldCheck } from 'lucide-react';
 
 const Hero: React.FC = () => {
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="relative bg-slate-900 pt-24 pb-32 overflow-hidden">
       <div className="absolute inset-0">
@@ -22,11 +30,19 @@ const Hero: React.FC = () => {
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
-          <a href="#demo" className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-sky-700 md:text-lg transition-all shadow-lg shadow-sky-900/50">
+          <a 
+            href="#demo" 
+            onClick={(e) => scrollToSection(e, 'demo')}
+            className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-sky-700 md:text-lg transition-all shadow-lg shadow-sky-900/50 cursor-pointer"
+          >
             <PhoneCall className="mr-2 h-5 w-5" />
             Prova Agente Vocale
           </a>
-          <a href="#features" className="inline-flex items-center justify-center px-8 py-3 border border-slate-700 text-base font-medium rounded-md text-slate-300 bg-transparent hover:bg-slate-800 md:text-lg transition-all">
+          <a 
+            href="#features"
+            onClick={(e) => scrollToSection(e, 'features')}
+            className="inline-flex items-center justify-center px-8 py-3 border border-slate-700 text-base font-medium rounded-md text-slate-300 bg-transparent hover:bg-slate-800 md:text-lg transition-all cursor-pointer"
+          >
             Scopri di Più
           </a>
         </div>

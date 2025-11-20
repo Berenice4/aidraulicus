@@ -3,9 +3,16 @@ import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import VoiceAgentDemo from '../components/VoiceAgentDemo';
 import Footer from '../components/Footer';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Send } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
+  const scrollToContact = () => {
+    const element = document.getElementById('contact');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -55,10 +62,54 @@ const LandingPage: React.FC = () => {
              <p className="text-sky-100 text-lg mb-8">
                Unisciti alle principali aziende idrauliche che usano AIdraulicus per aumentare i tassi di prenotazione e la soddisfazione del cliente.
              </p>
-             <button className="bg-white text-primary font-bold py-3 px-8 rounded-full hover:bg-sky-50 transition-colors shadow-lg">
+             <button onClick={scrollToContact} className="bg-white text-primary font-bold py-3 px-8 rounded-full hover:bg-sky-50 transition-colors shadow-lg transform hover:scale-105 active:scale-95">
                Inizia Oggi
              </button>
            </div>
+        </section>
+
+        {/* Contact Section */}
+        <section id="contact" className="py-20 bg-slate-50 border-t border-slate-200">
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold text-secondary mb-4">Contatta l'Agenzia</h2>
+              <p className="text-slate-600">
+                Compila il modulo sottostante per prenotare una demo completa o richiedere informazioni sui servizi per la tua azienda idraulica.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+              <form onSubmit={(e) => { e.preventDefault(); alert('Grazie! La tua richiesta è stata ricevuta (Simulazione).'); }} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Nome Azienda</label>
+                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Idraulica Rossi Srl" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Email Referente</label>
+                    <input type="email" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="info@esempio.com" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Tipo di Richiesta</label>
+                  <select className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                    <option>Richiesta Demo Completa</option>
+                    <option>Preventivo Servizio</option>
+                    <option>Supporto Tecnico</option>
+                    <option>Altro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Messaggio</label>
+                  <textarea rows={4} className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Parlaci delle tue esigenze..." required></textarea>
+                </div>
+                <button type="submit" className="w-full bg-secondary text-white font-bold py-4 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center">
+                  <Send className="h-5 w-5 mr-2" />
+                  Invia Richiesta
+                </button>
+              </form>
+            </div>
+          </div>
         </section>
 
       </main>

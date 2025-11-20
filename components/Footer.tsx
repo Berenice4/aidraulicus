@@ -2,6 +2,19 @@ import React from 'react';
 import { Wrench } from 'lucide-react';
 
 const Footer: React.FC = () => {
+  const handleDemoLink = (e: React.MouseEvent, name: string) => {
+    e.preventDefault();
+    alert(`${name} - Questa funzionalità è simulata per la demo.`);
+  };
+
+  const scrollToContact = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const element = document.getElementById('contact');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <footer className="bg-secondary text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -17,9 +30,9 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="flex space-x-6">
-            <a href="#" className="text-slate-400 hover:text-white text-sm">Privacy Policy</a>
-            <a href="#" className="text-slate-400 hover:text-white text-sm">Termini di Servizio</a>
-            <a href="#" className="text-slate-400 hover:text-white text-sm">Contatta Supporto</a>
+            <a href="#" onClick={(e) => handleDemoLink(e, 'Privacy Policy')} className="text-slate-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
+            <a href="#" onClick={(e) => handleDemoLink(e, 'Termini di Servizio')} className="text-slate-400 hover:text-white text-sm transition-colors">Termini di Servizio</a>
+            <a href="#contact" onClick={scrollToContact} className="text-slate-400 hover:text-white text-sm transition-colors">Contatta Supporto</a>
           </div>
         </div>
         <div className="mt-8 text-center text-sm text-slate-500 border-t border-slate-800 pt-8">
