@@ -15,13 +15,11 @@ export class GeminiLiveService {
   private sessionPromise: Promise<any> | null = null;
   private analyser: AnalyserNode | null = null;
   private active: boolean = false;
+  private apiKey: string | undefined;
 
   constructor() {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      console.error("API_KEY is not defined in environment variables.");
-    }
-    this.ai = new GoogleGenAI({ apiKey: apiKey || '' });
+    this.apiKey = process.env.API_KEY;
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey || '' });
   }
 
   public async connect(
@@ -31,12 +29,25 @@ export class GeminiLiveService {
     onVolumeChange: (volume: number) => void
   ) {
     if (this.active) return;
+    
+    // Immediate check for API Key
+    if (!this.apiKey) {
+      const error = new Error("API Key mancante. Configura API_KEY nelle variabili d'ambiente.");
+      onError(error);
+      return;
+    }
+
     this.active = true;
 
     try {
       // Initialize Audio Contexts
-      this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      this.inputAudioContext = new AudioContextClass({ sampleRate: 16000 });
+      this.outputAudioContext = new AudioContextClass({ sampleRate: 24000 });
+      
+      // Critical: Resume contexts to ensure they are active after user gesture
+      await this.inputAudioContext.resume();
+      await this.outputAudioContext.resume();
       
       this.outputNode = this.outputAudioContext.createGain();
       this.outputNode.connect(this.outputAudioContext.destination);
@@ -75,8 +86,8 @@ export class GeminiLiveService {
           }
         },
         config: {
-          // Use string literal 'AUDIO' to avoid Enum import issues
-          responseModalities: ['AUDIO'], 
+          // Use string 'AUDIO' to avoid runtime Enum issues
+          responseModalities: ['AUDIO' as any], 
           systemInstruction: SYSTEM_INSTRUCTIONS[agentType],
           speechConfig: {
             voiceConfig: { 
@@ -88,7 +99,9 @@ export class GeminiLiveService {
         }
       };
 
+      // Create and AWAIT the session to catch initial connection errors (403, 400, etc.)
       this.sessionPromise = this.ai.live.connect(config);
+      await this.sessionPromise;
 
     } catch (error) {
       console.error("Failed to connect:", error);
@@ -169,16 +182,20 @@ export class GeminiLiveService {
     const update = () => {
       if (!this.active) return;
       if (this.analyser) {
-        const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-        this.analyser.getByteFrequencyData(dataArray);
-        
-        // Calculate average volume
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i];
+        try {
+          const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+          this.analyser.getByteFrequencyData(dataArray);
+          
+          // Calculate average volume
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / dataArray.length;
+          onVolumeChange(average); // Scale 0-255
+        } catch (e) {
+          // Analyser might be disconnected
         }
-        const average = sum / dataArray.length;
-        onVolumeChange(average); // Scale 0-255
       }
       requestAnimationFrame(update);
     };
@@ -190,22 +207,27 @@ export class GeminiLiveService {
     this.stopAllSources();
     
     if (this.processor && this.source) {
-      this.source.disconnect();
-      this.processor.disconnect();
+      try {
+        this.source.disconnect();
+        this.processor.disconnect();
+      } catch (e) { /* ignore disconnect errors */ }
     }
     
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
     }
 
-    if (this.inputAudioContext) this.inputAudioContext.close();
-    if (this.outputAudioContext) this.outputAudioContext.close();
+    if (this.inputAudioContext && this.inputAudioContext.state !== 'closed') {
+       this.inputAudioContext.close().catch(e => console.error(e));
+    }
+    if (this.outputAudioContext && this.outputAudioContext.state !== 'closed') {
+       this.outputAudioContext.close().catch(e => console.error(e));
+    }
 
     // Close session if possible (SDK specific)
     this.sessionPromise?.then(session => {
-        // Try catch close as it might be closed by server
         try {
-           // session.close() // Check if method exists in SDK version, but relying on callback usually works
+           // session.close() if available
         } catch(e) {}
     });
 

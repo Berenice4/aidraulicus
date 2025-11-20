@@ -38,7 +38,14 @@ const VoiceAgentDemo: React.FC = () => {
         },
         (err) => {
           // On Error
-          setError("Impossibile connettersi. Assicurati di avere un microfono e la chiave API configurata.");
+          console.error("Call Error:", err);
+          let errorMsg = "Impossibile connettersi.";
+          if (err instanceof Error) {
+             errorMsg = err.message;
+          } else if (typeof err === 'string') {
+             errorMsg = err;
+          }
+          setError(errorMsg);
           setIsConnecting(false);
           setIsConnected(false);
         },
@@ -49,8 +56,9 @@ const VoiceAgentDemo: React.FC = () => {
       );
       setIsConnected(true);
       setIsConnecting(false);
-    } catch (e) {
-      setError("Impossibile inizializzare l'audio. Controlla i permessi.");
+    } catch (e: any) {
+      console.error("Start Call Exception:", e);
+      setError(e.message || "Errore durante l'avvio della chiamata. Verifica microfono e API Key.");
       setIsConnecting(false);
     }
   };
@@ -167,7 +175,7 @@ const VoiceAgentDemo: React.FC = () => {
              </div>
 
              {error && (
-               <div className="absolute top-4 px-4 py-2 bg-red-100 text-red-700 rounded-md text-sm">
+               <div className="absolute top-4 left-4 right-4 px-4 py-2 bg-red-100 text-red-700 rounded-md text-sm text-center shadow-sm border border-red-200 z-10">
                  {error}
                </div>
              )}
@@ -185,7 +193,7 @@ const VoiceAgentDemo: React.FC = () => {
                     }`}
                   >
                     <Mic className="mr-2 h-6 w-6" />
-                    Avvia Chiamata
+                    {isConnecting ? 'Connessione...' : 'Avvia Chiamata'}
                   </button>
                 ) : (
                    <button
