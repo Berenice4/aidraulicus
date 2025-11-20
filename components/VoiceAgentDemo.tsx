@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, PhoneOff, Loader2, Siren, Calendar, Activity } from 'lucide-react';
+import { Mic, PhoneOff, Loader2, Siren, Calendar, Activity, AlertCircle } from 'lucide-react';
 import { GeminiLiveService } from '../services/geminiLiveService';
 import { AgentType } from '../types';
 
@@ -175,8 +175,12 @@ const VoiceAgentDemo: React.FC = () => {
              </div>
 
              {error && (
-               <div className="absolute top-4 left-4 right-4 px-4 py-2 bg-red-100 text-red-700 rounded-md text-sm text-center shadow-sm border border-red-200 z-10">
-                 {error}
+               <div className="absolute top-4 left-4 right-4 px-4 py-3 bg-red-50 text-red-700 rounded-lg text-sm shadow-lg border border-red-200 z-20 flex items-start animate-pulse">
+                 <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                 <div className="text-left">
+                   <p className="font-bold mb-1">Errore di Connessione</p>
+                   <p>{error}</p>
+                 </div>
                </div>
              )}
 

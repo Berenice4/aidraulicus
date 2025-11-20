@@ -18,8 +18,33 @@ export class GeminiLiveService {
   private apiKey: string | undefined;
 
   constructor() {
-    this.apiKey = process.env.API_KEY;
-    this.ai = new GoogleGenAI({ apiKey: this.apiKey || '' });
+    // Robust API Key detection for various environments (Node, Vite, Netlify)
+    let key = '';
+    
+    try {
+      // 1. Check standard process.env (Node/Webpack/CRA)
+      if (typeof process !== 'undefined' && process.env) {
+        key = process.env.API_KEY || '';
+      }
+    } catch (e) {
+      // process is not defined
+    }
+
+    if (!key) {
+      try {
+        // 2. Check import.meta.env (Vite/Modern Browsers)
+        // @ts-ignore - import.meta might not be typed in all contexts
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+          // @ts-ignore
+          key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || '';
+        }
+      } catch (e) {
+        // import.meta is not defined
+      }
+    }
+
+    this.apiKey = key;
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   public async connect(
@@ -30,9 +55,9 @@ export class GeminiLiveService {
   ) {
     if (this.active) return;
     
-    // Immediate check for API Key
+    // Immediate check for API Key with helpful error message for Netlify
     if (!this.apiKey) {
-      const error = new Error("API Key mancante. Configura API_KEY nelle variabili d'ambiente.");
+      const error = new Error("API Key mancante. Se sei su Netlify, vai in 'Site configuration' > 'Environment variables' e aggiungi una variabile chiamata 'VITE_API_KEY' con la tua chiave Gemini.");
       onError(error);
       return;
     }
