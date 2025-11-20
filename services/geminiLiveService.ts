@@ -1,4 +1,4 @@
-import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage } from "@google/genai";
 import { base64ToUint8Array, decodeAudioData, float32ToPcmBlob } from "../utils/audioUtils";
 import { AgentType, SYSTEM_INSTRUCTIONS } from "../types";
 
@@ -52,6 +52,9 @@ export class GeminiLiveService {
       // Get Microphone Access
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      // Determine voice explicitly
+      const voiceName = agentType === AgentType.EMERGENCY ? 'Fenrir' : 'Kore';
+
       const config = {
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
@@ -66,19 +69,19 @@ export class GeminiLiveService {
             onDisconnect();
           },
           onerror: (err: any) => {
-            console.error("Session Error", err);
+            console.error("Session Error:", err);
             onError(err);
             this.disconnect();
           }
         },
         config: {
-          responseModalities: [Modality.AUDIO],
+          // Use string literal 'AUDIO' to avoid Enum import issues
+          responseModalities: ['AUDIO'], 
           systemInstruction: SYSTEM_INSTRUCTIONS[agentType],
           speechConfig: {
             voiceConfig: { 
               prebuiltVoiceConfig: { 
-                // 'Aoede' is not valid. Using 'Kore' for Front Desk and 'Fenrir' for Emergency.
-                voiceName: agentType === AgentType.EMERGENCY ? 'Fenrir' : 'Kore' 
+                voiceName: voiceName
               } 
             }
           }
