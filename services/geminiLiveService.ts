@@ -18,33 +18,45 @@ export class GeminiLiveService {
   private apiKey: string | undefined;
 
   constructor() {
-    // Robust API Key detection for various environments (Node, Vite, Netlify)
+    // FIX CRITICO PER VITE/NETLIFY:
+    // Vite sostituisce staticamente le variabili d'ambiente (es. 'import.meta.env.VITE_API_KEY')
+    // durante la build. L'accesso dinamico tramite array (es. env[key]) NON funziona in produzione
+    // perché la variabile non viene sostituita. Dobbiamo accedervi esplicitamente.
+    
     let key = '';
     
     try {
-      // 1. Check standard process.env (Node/Webpack/CRA)
-      if (typeof process !== 'undefined' && process.env) {
-        key = process.env.API_KEY || '';
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // @ts-ignore
+        if (import.meta.env.VITE_API_KEY) key = import.meta.env.VITE_API_KEY;
+        // @ts-ignore
+        else if (import.meta.env.REACT_APP_API_KEY) key = import.meta.env.REACT_APP_API_KEY;
+        // @ts-ignore
+        else if (import.meta.env.API_KEY) key = import.meta.env.API_KEY;
       }
     } catch (e) {
-      // process is not defined
+      console.warn("Errore accesso import.meta", e);
     }
 
+    // Fallback per ambienti Node-like o configurazioni diverse
     if (!key) {
       try {
-        // 2. Check import.meta.env (Vite/Modern Browsers)
-        // @ts-ignore - import.meta might not be typed in all contexts
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // @ts-ignore
+        if (typeof process !== 'undefined' && process.env) {
           // @ts-ignore
-          key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || '';
+          if (process.env.VITE_API_KEY) key = process.env.VITE_API_KEY;
+          // @ts-ignore
+          else if (process.env.REACT_APP_API_KEY) key = process.env.REACT_APP_API_KEY;
+          // @ts-ignore
+          else if (process.env.API_KEY) key = process.env.API_KEY;
         }
-      } catch (e) {
-        // import.meta is not defined
-      }
+      } catch (e) {}
     }
 
     this.apiKey = key;
-    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
+    // Inizializziamo anche se vuota, l'errore verrà lanciato in connect()
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey || 'MISSING_KEY' });
   }
 
   public async connect(
@@ -55,9 +67,11 @@ export class GeminiLiveService {
   ) {
     if (this.active) return;
     
-    // Immediate check for API Key with helpful error message for Netlify
-    if (!this.apiKey) {
-      const error = new Error("API Key mancante. Se sei su Netlify, vai in 'Site configuration' > 'Environment variables' e aggiungi una variabile chiamata 'VITE_API_KEY' con la tua chiave Gemini.");
+    // Controllo esplicito della chiave prima di iniziare
+    if (!this.apiKey || this.apiKey === 'MISSING_KEY') {
+      const error = new Error(
+        "API Key non trovata. Assicurati di aver impostato 'VITE_API_KEY' nelle variabili d'ambiente di Netlify e di aver fatto il redeploy."
+      );
       onError(error);
       return;
     }
@@ -65,204 +79,180 @@ export class GeminiLiveService {
     this.active = true;
 
     try {
-      // Initialize Audio Contexts
+      // Inizializzazione Audio Context
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       this.inputAudioContext = new AudioContextClass({ sampleRate: 16000 });
       this.outputAudioContext = new AudioContextClass({ sampleRate: 24000 });
       
-      // Critical: Resume contexts to ensure they are active after user gesture
+      // Resume è necessario per i browser moderni che bloccano l'audio autoplay
       await this.inputAudioContext.resume();
       await this.outputAudioContext.resume();
-      
+
       this.outputNode = this.outputAudioContext.createGain();
       this.outputNode.connect(this.outputAudioContext.destination);
 
-      // Analyser for visuals
-      this.analyser = this.outputAudioContext.createAnalyser();
-      this.analyser.fftSize = 256;
-      this.outputNode.connect(this.analyser);
-
-      // Setup Visualization loop
-      this.startVolumeMonitoring(onVolumeChange);
-
-      // Get Microphone Access
+      // Accesso al Microfono
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.source = this.inputAudioContext.createMediaStreamSource(this.mediaStream);
+      
+      // Analizzatore per la visualizzazione (barre animate)
+      this.analyser = this.inputAudioContext.createAnalyser();
+      this.source.connect(this.analyser);
+      this.analyser.fftSize = 256;
+      const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      
+      // Loop per monitorare il volume
+      const checkVolume = () => {
+        if (!this.active || !this.analyser) return;
+        this.analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        onVolumeChange(average / 255);
+        requestAnimationFrame(checkVolume);
+      };
+      checkVolume();
 
-      // Determine voice explicitly
-      const voiceName = agentType === AgentType.EMERGENCY ? 'Fenrir' : 'Kore';
-
+      // Setup Processore Audio per inviare dati a Gemini
+      this.processor = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
+      
       const config = {
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        callbacks: {
-          onopen: () => {
-            console.log("Session Opened");
-            this.startAudioInputStreaming();
-          },
-          onmessage: (message: LiveServerMessage) => this.handleServerMessage(message),
-          onclose: () => {
-            console.log("Session Closed");
-            this.disconnect();
-            onDisconnect();
-          },
-          onerror: (err: any) => {
-            console.error("Session Error:", err);
-            onError(err);
-            this.disconnect();
-          }
-        },
         config: {
-          // Use string 'AUDIO' to avoid runtime Enum issues
-          responseModalities: ['AUDIO' as any], 
-          systemInstruction: SYSTEM_INSTRUCTIONS[agentType],
+          responseModalities: ['AUDIO'] as any, // Usa stringa 'AUDIO' per evitare problemi di Enum
           speechConfig: {
-            voiceConfig: { 
-              prebuiltVoiceConfig: { 
-                voiceName: voiceName
-              } 
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: agentType === AgentType.EMERGENCY ? 'Puck' : 'Kore' } }
+          },
+          systemInstruction: SYSTEM_INSTRUCTIONS[agentType],
+        },
+        callbacks: {
+            onopen: () => {
+                console.log("Connessione WebSocket stabilita");
+                if (!this.inputAudioContext || !this.source || !this.processor) return;
+                
+                this.source.connect(this.processor);
+                this.processor.connect(this.inputAudioContext.destination);
+                
+                this.processor.onaudioprocess = (e) => {
+                    if (!this.active) return;
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    const pcmBlob = float32ToPcmBlob(inputData);
+                    
+                    // Invia l'audio solo quando la sessione è pronta
+                    if (this.sessionPromise) {
+                        this.sessionPromise.then(session => {
+                             session.sendRealtimeInput({ media: pcmBlob });
+                        }).catch(err => {
+                            console.error("Errore invio audio:", err);
+                        });
+                    }
+                };
+            },
+            onmessage: async (msg: LiveServerMessage) => {
+                if (!this.active) return;
+                
+                // Gestione audio in entrata (dal modello)
+                const data = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+                if (data && this.outputAudioContext && this.outputNode) {
+                    try {
+                        const audioData = base64ToUint8Array(data);
+                        // Gestione timing per evitare sovrapposizioni
+                        this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
+                        
+                        const audioBuffer = await decodeAudioData(
+                            audioData, 
+                            this.outputAudioContext, 
+                            24000
+                        );
+                        
+                        const source = this.outputAudioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(this.outputNode);
+                        
+                        source.start(this.nextStartTime);
+                        this.nextStartTime += audioBuffer.duration;
+                        
+                        this.sources.add(source);
+                        source.onended = () => {
+                            this.sources.delete(source);
+                        };
+                    } catch (e) {
+                        console.error("Errore decoding audio:", e);
+                    }
+                }
+
+                // Gestione interruzioni
+                if (msg.serverContent?.interrupted) {
+                    console.log("Interruzione rilevata");
+                    this.sources.forEach(s => {
+                        try { s.stop(); } catch (e) {}
+                    });
+                    this.sources.clear();
+                    this.nextStartTime = 0;
+                }
+            },
+            onclose: () => {
+                console.log("Sessione chiusa");
+                this.disconnect();
+                onDisconnect();
+            },
+            onerror: (err: any) => {
+                console.error("Errore sessione:", err);
+                onError(err);
+                this.disconnect();
             }
-          }
         }
       };
 
-      // Create and AWAIT the session to catch initial connection errors (403, 400, etc.)
       this.sessionPromise = this.ai.live.connect(config);
+      // Attendi che la connessione sia effettivamente stabilita
       await this.sessionPromise;
 
     } catch (error) {
-      console.error("Failed to connect:", error);
+      console.error("Errore durante connect():", error);
+      this.active = false;
       onError(error);
-      this.disconnect();
     }
-  }
-
-  private startAudioInputStreaming() {
-    if (!this.inputAudioContext || !this.mediaStream || !this.sessionPromise) return;
-
-    this.source = this.inputAudioContext.createMediaStreamSource(this.mediaStream);
-    this.processor = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
-
-    this.processor.onaudioprocess = (e) => {
-      if (!this.active) return;
-      
-      const inputData = e.inputBuffer.getChannelData(0);
-      const pcmBlob = float32ToPcmBlob(inputData);
-
-      this.sessionPromise?.then(session => {
-        session.sendRealtimeInput({ media: pcmBlob });
-      });
-    };
-
-    this.source.connect(this.processor);
-    this.processor.connect(this.inputAudioContext.destination);
-  }
-
-  private async handleServerMessage(message: LiveServerMessage) {
-    const serverContent = message.serverContent;
-
-    // Handle interruption
-    if (serverContent?.interrupted) {
-      console.log("Model Interrupted");
-      this.stopAllSources();
-      this.nextStartTime = 0;
-    }
-
-    // Handle Audio Output
-    const base64Audio = serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-    if (base64Audio && this.outputAudioContext && this.outputNode) {
-      try {
-        const audioData = base64ToUint8Array(base64Audio);
-        this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
-        
-        const audioBuffer = await decodeAudioData(audioData, this.outputAudioContext);
-        
-        const source = this.outputAudioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(this.outputNode);
-        
-        source.addEventListener('ended', () => {
-          this.sources.delete(source);
-        });
-
-        source.start(this.nextStartTime);
-        this.nextStartTime += audioBuffer.duration;
-        this.sources.add(source);
-      } catch (e) {
-        console.error("Error decoding audio", e);
-      }
-    }
-  }
-
-  private stopAllSources() {
-    this.sources.forEach(source => {
-      try {
-        source.stop();
-      } catch (e) {
-        // Ignore errors if source already stopped
-      }
-    });
-    this.sources.clear();
-  }
-
-  private startVolumeMonitoring(onVolumeChange: (vol: number) => void) {
-    const update = () => {
-      if (!this.active) return;
-      if (this.analyser) {
-        try {
-          const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-          this.analyser.getByteFrequencyData(dataArray);
-          
-          // Calculate average volume
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / dataArray.length;
-          onVolumeChange(average); // Scale 0-255
-        } catch (e) {
-          // Analyser might be disconnected
-        }
-      }
-      requestAnimationFrame(update);
-    };
-    update();
   }
 
   public disconnect() {
+    if (!this.active) return;
     this.active = false;
-    this.stopAllSources();
-    
-    if (this.processor && this.source) {
-      try {
-        this.source.disconnect();
+
+    // Pulizia Audio
+    if (this.processor) {
         this.processor.disconnect();
-      } catch (e) { /* ignore disconnect errors */ }
+        this.processor.onaudioprocess = null;
+        this.processor = null;
     }
     
+    if (this.source) {
+        this.source.disconnect();
+        this.source = null;
+    }
+
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
+        this.mediaStream.getTracks().forEach(track => track.stop());
+        this.mediaStream = null;
     }
 
-    if (this.inputAudioContext && this.inputAudioContext.state !== 'closed') {
-       this.inputAudioContext.close().catch(e => console.error(e));
-    }
-    if (this.outputAudioContext && this.outputAudioContext.state !== 'closed') {
-       this.outputAudioContext.close().catch(e => console.error(e));
+    if (this.inputAudioContext) {
+        this.inputAudioContext.close();
+        this.inputAudioContext = null;
     }
 
-    // Close session if possible (SDK specific)
-    this.sessionPromise?.then(session => {
-        try {
-           // session.close() if available
-        } catch(e) {}
+    if (this.outputAudioContext) {
+        this.outputAudioContext.close();
+        this.outputAudioContext = null;
+    }
+    
+    this.sources.forEach(s => {
+        try { s.stop(); } catch(e) {}
     });
+    this.sources.clear();
+    this.nextStartTime = 0;
 
-    this.inputAudioContext = null;
-    this.outputAudioContext = null;
-    this.mediaStream = null;
-    this.processor = null;
-    this.source = null;
-    this.outputNode = null;
-    this.analyser = null;
-    this.sessionPromise = null;
+    // Pulizia Sessione
+    if (this.sessionPromise) {
+        this.sessionPromise = null;
+    }
   }
 }
