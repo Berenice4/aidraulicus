@@ -79,30 +79,20 @@ const LandingPage: React.FC = () => {
             </div>
             
             <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-              {/* CORREZIONE FINALE: action="/#success" per il router React */}
-              <form 
-                name="ContattoAgenzia" 
-                method="POST" 
-                data-netlify="true" 
-                action="/#success" 
-                className="space-y-6"
-              >
-                {/* Campo nascosto OBBLIGATORIO per Netlify Forms */}
-                <input type="hidden" name="form-name" value="ContattoAgenzia" />
-                
+              <form onSubmit={(e) => { e.preventDefault(); alert('Grazie! La tua richiesta è stata ricevuta (Simulazione).'); }} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="nome_azienda" className="block text-sm font-medium text-slate-700 mb-2">Nome Azienda</label>
-                    <input type="text" id="nome_azienda" name="nome_azienda" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Idraulica Rossi Srl" required />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Nome Azienda</label>
+                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Idraulica Rossi Srl" required />
                   </div>
                   <div>
-                    <label htmlFor="email_referente" className="block text-sm font-medium text-slate-700 mb-2">Email Referente</label>
-                    <input type="email" id="email_referente" name="email_referente" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="info@esempio.com" required />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Email Referente</label>
+                    <input type="email" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="info@esempio.com" required />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="tipo_richiesta" className="block text-sm font-medium text-slate-700 mb-2">Tipo di Richiesta</label>
-                  <select id="tipo_richiesta" name="tipo_richiesta" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Tipo di Richiesta</label>
+                  <select className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
                     <option>Richiesta Demo Completa</option>
                     <option>Preventivo Servizio</option>
                     <option>Supporto Tecnico</option>
@@ -110,8 +100,8 @@ const LandingPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="messaggio" className="block text-sm font-medium text-slate-700 mb-2">Messaggio</label>
-                  <textarea id="messaggio" name="messaggio" rows={4} className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Parlaci delle tue esigenze..." required></textarea>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Messaggio</label>
+                  <textarea rows={4} className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Parlaci delle tue esigenze..." required></textarea>
                 </div>
                 <button type="submit" className="w-full bg-secondary text-white font-bold py-4 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center">
                   <Send className="h-5 w-5 mr-2" />
