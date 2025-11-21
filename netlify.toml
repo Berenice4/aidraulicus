@@ -1,0 +1,21 @@
+[build]
+  # Specifica la cartella dove il tuo script di build (es. npm run build) deposita i file finali
+  # Per i progetti React è spesso 'build', 'dist', o 'out'
+  # Se non sei sicuro, controlla la cartella che viene creata dopo aver eseguito 'npm run build'
+  publish = "dist" # Modifica questo se la tua cartella di output non è 'dist'
+
+[functions]
+  # Specifica la cartella per le Netlify Functions (Fase 3)
+  directory = "netlify/functions"
+
+[[redirects]]
+  # Regola SPA (gestisce il routing client-side)
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  # Regola per il successo del form (gestisce la reindirizzamento di Netlify Forms)
+  from = "/thank-you"
+  to = "/thank-you.html"
+  status = 200
