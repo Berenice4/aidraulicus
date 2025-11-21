@@ -1,0 +1,10 @@
+[build]
+  publish = "dist" 
+  command = "npm run build"
+
+[[redirects]]
+  # Questa regola è la chiave: gestisce i percorsi del router React (/*)
+  # e impedisce il 404 del server, servendo index.html
+  from = "/*"
+  to = "/index.html"
+  status = 200
