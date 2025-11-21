@@ -1,5 +1,2 @@
-# Regola per la pagina di successo del form Netlify
 /thank-you /thank-you.html 200
-
-# Regola base per le Single Page Applications (necessaria per il routing React)
 /* /index.html 200
