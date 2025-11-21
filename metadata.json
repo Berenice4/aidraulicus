@@ -1,7 +1,0 @@
-{
-  "name": "AIdraulicus - Demo Vocale AI",
-  "description": "Un sito web demo per AIdraulicus con due distinti agenti vocali AI: Reception e Pronto Intervento.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
