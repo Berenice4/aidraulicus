@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
             </div>
             <div>
               <span className="text-xl font-bold">AIdraulicus</span>
-              <p className="text-xs text-slate-400">Gestito da Voice AI Agency</p>
+              <p className="text-xs text-slate-400">Gestito da THE ROUND</p>
             </div>
           </div>
           
@@ -36,7 +36,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
         <div className="mt-8 text-center text-sm text-slate-500 border-t border-slate-800 pt-8">
-          &copy; {new Date().getFullYear()} Voice AI Agency. Tutti i diritti riservati.
+          &copy; {new Date().getFullYear()} THE ROUND. Tutti i diritti riservati.
         </div>
       </div>
     </footer>
