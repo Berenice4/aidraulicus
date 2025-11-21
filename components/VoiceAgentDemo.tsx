@@ -28,6 +28,36 @@ const VoiceAgentDemo: React.FC = () => {
     serviceRef.current = service;
 
     try {
+      // 1. Chiamata al backend per ottenere configurazione/token
+      // Questo permette di non esporre la chiave API nel codice client se gestita dal backend
+      let backendApiKey: string | undefined = undefined;
+      
+      try {
+        const response = await fetch('/.netlify/functions/ai_agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            agentType: activeAgent,
+            action: 'create_session' 
+          }),
+        });
+
+        if (!response.ok) {
+          console.warn(`Backend call warning: ${response.statusText}. Falling back to env vars if available.`);
+        } else {
+          const data = await response.json();
+          // Si assume che il backend restituisca { apiKey: "..." } o simile
+          if (data && data.apiKey) {
+            backendApiKey = data.apiKey;
+          }
+        }
+      } catch (fetchErr) {
+        console.warn("Impossibile contattare il backend, tentativo con variabili locali.", fetchErr);
+      }
+
+      // 2. Connessione al servizio Gemini Live
       await service.connect(
         activeAgent,
         () => {
@@ -52,8 +82,10 @@ const VoiceAgentDemo: React.FC = () => {
         (vol) => {
           // On Volume Change
           setVolume(vol);
-        }
+        },
+        backendApiKey // Passiamo la chiave ottenuta dal backend
       );
+      
       setIsConnected(true);
       setIsConnecting(false);
     } catch (e: any) {

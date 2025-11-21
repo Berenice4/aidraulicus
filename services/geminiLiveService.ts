@@ -3,7 +3,7 @@ import { base64ToUint8Array, decodeAudioData, float32ToPcmBlob } from "../utils/
 import { AgentType, SYSTEM_INSTRUCTIONS } from "../types";
 
 export class GeminiLiveService {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenAI | null = null;
   private inputAudioContext: AudioContext | null = null;
   private outputAudioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -15,14 +15,11 @@ export class GeminiLiveService {
   private sessionPromise: Promise<any> | null = null;
   private analyser: AnalyserNode | null = null;
   private active: boolean = false;
-  private apiKey: string | undefined;
+  private envApiKey: string | undefined;
 
   constructor() {
-    // FIX CRITICO PER VITE/NETLIFY:
-    // Vite sostituisce staticamente le variabili d'ambiente (es. 'import.meta.env.VITE_API_KEY')
-    // durante la build. L'accesso dinamico tramite array (es. env[key]) NON funziona in produzione
-    // perché la variabile non viene sostituita. Dobbiamo accedervi esplicitamente.
-    
+    // Recuperiamo la chiave dall'ambiente come fallback, ma non inizializziamo ancora GoogleGenAI
+    // in quanto potremmo ricevere una chiave aggiornata dal backend in connect()
     let key = '';
     
     try {
@@ -39,7 +36,6 @@ export class GeminiLiveService {
       console.warn("Errore accesso import.meta", e);
     }
 
-    // Fallback per ambienti Node-like o configurazioni diverse
     if (!key) {
       try {
         // @ts-ignore
@@ -54,27 +50,32 @@ export class GeminiLiveService {
       } catch (e) {}
     }
 
-    this.apiKey = key;
-    // Inizializziamo anche se vuota, l'errore verrà lanciato in connect()
-    this.ai = new GoogleGenAI({ apiKey: this.apiKey || 'MISSING_KEY' });
+    this.envApiKey = key;
   }
 
   public async connect(
     agentType: AgentType, 
     onDisconnect: () => void, 
     onError: (err: any) => void,
-    onVolumeChange: (volume: number) => void
+    onVolumeChange: (volume: number) => void,
+    providedApiKey?: string // Nuova opzione per passare la chiave dal backend
   ) {
     if (this.active) return;
     
+    // Determina la chiave da usare: quella fornita dal backend ha precedenza su quella d'ambiente locale
+    const finalApiKey = providedApiKey || this.envApiKey;
+
     // Controllo esplicito della chiave prima di iniziare
-    if (!this.apiKey || this.apiKey === 'MISSING_KEY') {
+    if (!finalApiKey || finalApiKey === 'MISSING_KEY') {
       const error = new Error(
-        "API Key non trovata. Assicurati di aver impostato 'VITE_API_KEY' nelle variabili d'ambiente di Netlify e di aver fatto il redeploy."
+        "API Key mancante. Verifica che il backend restituisca una chiave o che 'VITE_API_KEY' sia impostata."
       );
       onError(error);
       return;
     }
+
+    // Inizializza l'istanza AI con la chiave corretta
+    this.ai = new GoogleGenAI({ apiKey: finalApiKey });
 
     this.active = true;
 
@@ -202,6 +203,7 @@ export class GeminiLiveService {
         }
       };
 
+      // @ts-ignore - this.ai is guaranteed to be set above
       this.sessionPromise = this.ai.live.connect(config);
       // Attendi che la connessione sia effettivamente stabilita
       await this.sessionPromise;
@@ -254,5 +256,8 @@ export class GeminiLiveService {
     if (this.sessionPromise) {
         this.sessionPromise = null;
     }
+    
+    // Reset dell'istanza AI per permettere riconnessione pulita con potenziali nuove chiavi
+    this.ai = null;
   }
 }
