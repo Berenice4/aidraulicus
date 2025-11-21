@@ -1,14 +1,9 @@
 [build]
-  # Sostituisci 'dist' con il nome della cartella di output del tuo build (solitamente 'dist' per Vite)
-  publish = "dist" 
-  command = "npm run build" # Assicurati che il comando di build sia corretto
-
-[functions]
-  directory = "netlify/functions"
+  publish = "dist" # Deve corrispondere all'impostazione Netlify
 
 [[redirects]]
-  # REGOLA FONDAMENTALE PER LE SPA.
-  # Dice a Netlify: "Se non trovi un file corrispondente, servi index.html"
+  # Questa regola è FONDAMENTALE.
+  # Dice: per qualsiasi URL non trovato (/*), servi index.html e rispondi 200 (OK).
   from = "/*"
   to = "/index.html"
   status = 200
