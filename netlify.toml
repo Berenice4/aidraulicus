@@ -1,15 +1,10 @@
 [build]
-  # Conferma la cartella di pubblicazione letta dallo screenshot di Netlify
   publish = "dist" 
   command = "npm run build"
 
-[functions]
-  # Conferma la cartella per le tue funzioni serverless
-  directory = "netlify/functions"
-
 [[redirects]]
-  # REGOLA FONDAMENTALE PER LE SPA (Status 200)
-  # Qualsiasi richiesta non gestita (/*) deve servire index.html.
+  # Questa regola è la chiave: gestisce i percorsi del router React (/*)
+  # e impedisce il 404 del server, servendo index.html
   from = "/*"
   to = "/index.html"
   status = 200
