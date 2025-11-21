@@ -1,5 +1,0 @@
-# Regola per la pagina di successo del form
-/thank-you /thank-you.html 200
-
-# Regola standard per le Single Page Applications (SPA)
-/* /index.html 200
