@@ -79,26 +79,29 @@ const LandingPage: React.FC = () => {
             </div>
             
             <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-              {/* CAMBIATO: Aggiunti attributi Netlify e rimosso l'onSubmit simulato */}
-              <form name="ContattoAgenzia" method="POST" data-netlify="true" className="space-y-6">
-                {/* CAMBIATO: Campo nascosto per Netlify */}
+              {/* CORREZIONE CHIAVE: Aggiunto action="/thank-you" per risolvere il 404 dopo l'invio */}
+              <form 
+                name="ContattoAgenzia" 
+                method="POST" 
+                data-netlify="true" 
+                action="/thank-you" // <--- CORREZIONE APPLICATA
+                className="space-y-6"
+              >
+                {/* Campo nascosto per Netlify */}
                 <input type="hidden" name="form-name" value="ContattoAgenzia" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Nome Azienda</label>
-                    {/* CAMBIATO: Aggiunto attributo name */}
                     <input type="text" name="nome_azienda" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Idraulica Rossi Srl" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Email Referente</label>
-                    {/* CAMBIATO: Aggiunto attributo name */}
                     <input type="email" name="email_referente" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="info@esempio.com" required />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Tipo di Richiesta</label>
-                  {/* CAMBIATO: Aggiunto attributo name */}
                   <select name="tipo_richiesta" className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
                     <option>Richiesta Demo Completa</option>
                     <option>Preventivo Servizio</option>
@@ -108,7 +111,6 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Messaggio</label>
-                  {/* CAMBIATO: Aggiunto attributo name */}
                   <textarea name="messaggio" rows={4} className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Parlaci delle tue esigenze..." required></textarea>
                 </div>
                 <button type="submit" className="w-full bg-secondary text-white font-bold py-4 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center">
