@@ -44,70 +44,9 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
-    <script type="module" src="/index.tsx"></script>
-
-    </form>
-        
-        I dati inviati da questo form saranno raccolti automaticamente nella sezione "Forms" della dashboard Netlify.
-    -->
-
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const button = document.getElementById('test-ai-button');
-        const resultMessage = document.getElementById('ai-result-message');
-        
-        if (button && resultMessage) {
-            button.addEventListener('click', async () => {
-                // 1. Blocco il pulsante e mostro un messaggio di attesa
-                button.disabled = true;
-                resultMessage.textContent = "Agente AI in fase di simulazione... (Attendere circa 2 secondi)";
-                resultMessage.style.color = '#007bff'; // Blu per l'attesa
-                
-                // Dati di input simulati: adattali se devi inviare dati specifici
-                const payload = {
-                    problema: "Simulazione gestione chiamata cliente",
-                    priorita: "standard"
-                };
-                
-                try {
-                    // 2. Esegue la chiamata POST alla Netlify Function
-                    const response = await fetch('/.netlify/functions/ai_agent', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Errore HTTP: ${response.status}`);
-                    }
-
-                    // 3. Gestisce la risposta JSON dalla Netlify Function
-                    const data = await response.json();
-                    
-                    // 4. Aggiorna l'interfaccia con il risultato della simulazione
-                    resultMessage.textContent = `Risultato AI: ${data.status}. Dettaglio: ${data.message}`;
-                    resultMessage.style.color = data.status === "Risolto dall'AI" ? 'green' : 'red';
-                    
-                } catch (error) {
-                    console.error("Errore nella simulazione AI:", error);
-                    resultMessage.textContent = "Errore durante la connessione con l'Agente AI. Controllare la Netlify Function.";
-                    resultMessage.style.color = 'red';
-                } finally {
-                    // Rilascio il pulsante
-                    button.disabled = false;
-                }
-            });
-        } else {
-            console.warn("Gli elementi HTML per la simulazione AI (ID 'test-ai-button' o 'ai-result-message') non sono stati trovati.");
-        }
-    });
-    </script>
-</body>
+  </body>
 </html>
