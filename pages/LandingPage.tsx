@@ -79,12 +79,12 @@ const LandingPage: React.FC = () => {
             </div>
             
             <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-              {/* CORREZIONE CHIAVE: Aggiunto action="/thank-you" per risolvere il 404 dopo l'invio */}
+              {/* CORREZIONE CHIAVE: Utilizzo di action="/#success" per affidare la gestione del successo al HashRouter di React */}
               <form 
                 name="ContattoAgenzia" 
                 method="POST" 
                 data-netlify="true" 
-                action="/thank-you" // <--- CORREZIONE APPLICATA
+                action="/#success" // <--- CORREZIONE APPLICATA
                 className="space-y-6"
               >
                 {/* Campo nascosto per Netlify */}
